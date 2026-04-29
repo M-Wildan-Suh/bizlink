@@ -19,6 +19,8 @@ class TrafficController extends Controller
     {
         $mode = $request->query('mode', 'day'); // default day
         $list = $request->query('list', 'guardian'); // default day
+        $sort = $request->query('sort', 'access'); // default sort by access
+        $direction = $request->query('direction', 'desc'); // default desc
 
         if ($mode === 'day') {
 
@@ -64,9 +66,19 @@ class TrafficController extends Controller
                 }],
                 'access'
             )
+            ->withSum(
+                ['waTraffic as wa_access' => function ($q) use ($start, $end) {
+                    if ($start && $end) {
+                        $q->whereBetween('created_at', [$start, $end]);
+                    }
+                }],
+                'access'
+            )
                 ->having('access', '>', 0) // 🔥 FILTER DI SINI
-                ->orderByDesc('access')
-                ->simplePaginate(10);
+                ->orHaving('wa_access', '>', 0) // 🔥 ATAU WA ACCESS
+                ->orderBy($sort, $direction)
+                ->simplePaginate(10)
+                ->withQueryString();
 
             // hitung no guardian
             if (!$request->ajax()) {
@@ -75,7 +87,12 @@ class TrafficController extends Controller
                     ->whereBetween('created_at', [$start, $end])
                     ->sum('access');
 
-                if ($noGuardianAccess > 0) {
+                $noGuardianWaAccess = \App\Models\WaTraffic::whereNull('guardian_web_id')
+                    ->whereIn('article_show_id', $traffic['articleShowIds'])
+                    ->whereBetween('created_at', [$start, $end])
+                    ->sum('access');
+
+                if ($noGuardianAccess > 0 || $noGuardianWaAccess > 0) {
 
                     // ambil collection paginator
                     $items = $guardians->getCollection();
@@ -85,10 +102,11 @@ class TrafficController extends Controller
                         'id' => null,
                         'url' => 'bizlink.sites.id',
                         'access' => $noGuardianAccess,
+                        'wa_access' => $noGuardianWaAccess,
                     ]);
 
                     // 🔥 SORT ULANG BERDASARKAN ACCESS
-                    $items = $items->sortByDesc('access')->values();
+                    $items = $items->sortBy($sort, SORT_REGULAR, $direction === 'desc')->values();
 
                     // set kembali ke paginator
                     $guardians->setCollection($items);
@@ -102,11 +120,19 @@ class TrafficController extends Controller
                         ->join('articles', 'articles.id', '=', 'traffic.article_id')
                         ->join('pivot_articles_categories as pac', 'pac.article_id', '=', 'articles.id')
                         ->whereColumn('pac.category_id', 'article_categories.id')
-                        ->whereBetween('traffic.created_at', [$start, $end])
+                        ->whereBetween('traffic.created_at', [$start, $end]),
+                    'wa_access' => \App\Models\WaTraffic::selectRaw('COALESCE(SUM(access),0)')
+                        ->join('article_shows', 'article_shows.id', '=', 'wa_traffic.article_show_id')
+                        ->join('articles', 'articles.id', '=', 'article_shows.article_id')
+                        ->join('pivot_articles_categories as pac', 'pac.article_id', '=', 'articles.id')
+                        ->whereColumn('pac.category_id', 'article_categories.id')
+                        ->whereBetween('wa_traffic.created_at', [$start, $end])
                 ])
                 ->having('access', '>', 0) // 🔥 FILTER
-                ->orderByDesc('access')
-                ->simplePaginate(10);
+                ->orHaving('wa_access', '>', 0)
+                ->orderBy($sort, $direction)
+                ->simplePaginate(10)
+                ->withQueryString();
         } elseif ($list === 'article') {
             $articles = ArticleShow::withSum(
                 ['traffic as access' => function ($q) use ($start, $end) {
@@ -114,10 +140,18 @@ class TrafficController extends Controller
                 }],
                 'access'
             )
+            ->withSum(
+                ['waTraffic as wa_access' => function ($q) use ($start, $end) {
+                    $q->whereBetween('created_at', [$start, $end]);
+                }],
+                'access'
+            )
                 ->whereIn('id', $traffic['articleShowIds'])
                 ->having('access', '>', 0) // 🔥 FILTER
-                ->orderByDesc('access')
-                ->simplePaginate(10);
+                ->orHaving('wa_access', '>', 0)
+                ->orderBy($sort, $direction)
+                ->simplePaginate(10)
+                ->withQueryString();
         }
 
         if ($request->ajax()) {
@@ -130,7 +164,7 @@ class TrafficController extends Controller
         $totalwaaccess = \App\Models\WaTraffic::whereBetween('created_at', [$start, $end])
             ->sum('access');
 
-        return view('admin.traffic.index', compact('traffic', 'mode', 'list', 'guardians', 'articles', 'categories', 'totalaccess', 'totalwaaccess', 'start', 'end'));
+        return view('admin.traffic.index', compact('traffic', 'mode', 'list', 'guardians', 'articles', 'categories', 'totalaccess', 'totalwaaccess', 'start', 'end', 'sort', 'direction'));
     }
 
     private function trafficDay($start, $end)

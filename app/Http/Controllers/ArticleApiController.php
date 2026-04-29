@@ -299,6 +299,7 @@ class ArticleApiController extends Controller
                 // Belum ada record → buat baru
                 \App\Models\WaTraffic::create([
                     'article_show_id' => $article->id,
+                    'guardian_web_id' => $article->articles->guardian_web_id,
                     'access' => 1,
                 ]);
             }

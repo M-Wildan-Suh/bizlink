@@ -31,6 +31,10 @@ class GuardianWeb extends Model
         return $this->hasMany(Traffic::class);
     }
 
+    public function waTraffic() {
+        return $this->hasMany(WaTraffic::class);
+    }
+
     public function cpanelAccount()
     {
         return $this->belongsTo(CpanelAccount::class);

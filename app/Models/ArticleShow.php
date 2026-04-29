@@ -29,4 +29,9 @@ class ArticleShow extends Model
     {
         return $this->hasMany(Traffic::class);
     }
+
+    public function waTraffic()
+    {
+        return $this->hasMany(WaTraffic::class);
+    }
 }

@@ -8,6 +8,7 @@ use App\Models\ArticleShow;
 use App\Models\GuardianWeb;
 use App\Models\SourceCode;
 use App\Models\Traffic;
+use App\Models\WaTraffic;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -86,6 +87,7 @@ class AdminController extends Controller
                 ->join('articles', 'articles.id', '=', 'article_shows.article_id')
                 ->whereNull('articles.guardian_web_id')
                 ->where('articles.article_type', 'spintax')
+                // ->where('articles.article_type', 'spintax')
                 ->count()
         );
         $manual->uniquecount = $this->formatCount(Article::whereNull('guardian_web_id')->where('article_type', 'unique')->count());
@@ -153,13 +155,8 @@ class AdminController extends Controller
         $waValues = [];
         $articleIds = [];
 
-        $rawRows = Traffic::whereBetween('created_at', [$start, $end])
-            ->select(['created_at', 'access', 'article_show_id'])
-            ->get();
-
-        $waRows = \App\Models\WaTraffic::whereBetween('created_at', [$start, $end])
-            ->select(['created_at', 'access'])
-            ->get();
+        $rawRows = Traffic::whereBetween('created_at', [$start, $end])->get(['created_at', 'access', 'article_show_id']);
+        $waRows  = WaTraffic::whereBetween('created_at', [$start, $end])->get(['created_at', 'access']);
 
         $bucketValues = [];
         foreach ($rawRows as $row) {

@@ -279,6 +279,7 @@ class PageController extends Controller
             // Belum ada record → buat baru
             WaTraffic::create([
                 'article_show_id' => $article->id,
+                'guardian_web_id' => $article->articles->guardian_web_id,
                 'access' => 1,
             ]);
         }

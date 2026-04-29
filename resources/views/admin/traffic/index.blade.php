@@ -131,25 +131,39 @@
         </div>
         <div class="w-full p-4 sm:p-8 bg-white rounded-md shadow-md shadow-black/20">
             <div x-data="{ tab: 'guardian' }" class="space-y-8">
-                <div class=" w-full grid grid-cols-3 gap-2 sm:gap-4">
-                    <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'guardian']) }}"
-                        class=" {{ $list === 'guardian' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base md:w-auto px-4 py-2 font-semibold rounded-md duration-300">
-                        Guardian
-                    </a>
-                    <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'category']) }}"
-                        class=" {{ $list === 'category' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base md:w-auto px-4 py-2 font-semibold rounded-md duration-300">
-                        Category
-                    </a>
-                    <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'article']) }}"
-                        class=" {{ $list === 'article' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base md:w-auto px-4 py-2 font-semibold rounded-md duration-300">
-                        Article
-                    </a>
+                <div class=" w-full flex flex-col md:flex-row justify-between gap-4">
+                    <div class=" grid grid-cols-3 gap-2 sm:gap-4 w-full md:w-auto">
+                        <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'guardian', 'sort' => $sort, 'direction' => $direction]) }}"
+                            class=" {{ $list === 'guardian' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base px-4 py-2 font-semibold rounded-md duration-300">
+                            Guardian
+                        </a>
+                        <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'category', 'sort' => $sort, 'direction' => $direction]) }}"
+                            class=" {{ $list === 'category' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base px-4 py-2 font-semibold rounded-md duration-300">
+                            Category
+                        </a>
+                        <a href="{{ route('traffic.index', ['mode' => $mode, 'list' => 'article', 'sort' => $sort, 'direction' => $direction]) }}"
+                            class=" {{ $list === 'article' ? 'bg-byolink-1 text-white' : 'text-black rounded-md hover:text-white bg-neutral-200 hover:bg-byolink-1' }} text-nowrap w-full text-center text-sm sm:text-base px-4 py-2 font-semibold rounded-md duration-300">
+                            Article
+                        </a>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label for="sort_filter" class="text-sm font-semibold text-neutral-600">Urutkan:</label>
+                        <select id="sort_filter" onchange="location = this.value;" class="text-sm border-neutral-300 rounded-md focus:ring-byolink-1 focus:border-byolink-1">
+                            <option value="{{ route('traffic.index', ['mode' => $mode, 'list' => $list, 'sort' => 'access', 'direction' => 'desc', 'start' => $start, 'end' => $end]) }}" {{ $sort === 'access' && $direction === 'desc' ? 'selected' : '' }}>Terbanyak Access</option>
+                            <option value="{{ route('traffic.index', ['mode' => $mode, 'list' => $list, 'sort' => 'access', 'direction' => 'asc', 'start' => $start, 'end' => $end]) }}" {{ $sort === 'access' && $direction === 'asc' ? 'selected' : '' }}>Terkecil Access</option>
+                            <option value="{{ route('traffic.index', ['mode' => $mode, 'list' => $list, 'sort' => 'wa_access', 'direction' => 'desc', 'start' => $start, 'end' => $end]) }}" {{ $sort === 'wa_access' && $direction === 'desc' ? 'selected' : '' }}>Terbanyak WhatsApp</option>
+                            <option value="{{ route('traffic.index', ['mode' => $mode, 'list' => $list, 'sort' => 'wa_access', 'direction' => 'asc', 'start' => $start, 'end' => $end]) }}" {{ $sort === 'wa_access' && $direction === 'asc' ? 'selected' : '' }}>Terkecil WhatsApp</option>
+                        </select>
+                    </div>
                 </div>
+
                 <div class=" space-y-4">
                     <table class=" w-full">
                         <tr class=" border-b">
                             <th class=" pb-4 text-left capitalize">{{ $list }}</th>
                             <th class=" pb-4 text-right">Access</th>
+                            <th class=" pb-4 text-right">WhatsApp</th>
                         </tr>
                         <tbody id="container">
                             @include('admin.traffic.row')
@@ -195,13 +209,15 @@
                             const mode = "{!! $mode ? '&mode=' . urlencode($mode) : '' !!}";
                             const start = "{!! $start ? '&start=' . urlencode($start) : '' !!}";
                             const end = "{!! $end ? '&end=' . urlencode($end) : '' !!}";
+                            const sort = "{!! $sort ? '&sort=' . urlencode($sort) : '' !!}";
+                            const direction = "{!! $direction ? '&direction=' . urlencode($direction) : '' !!}";
 
                             // Scroll benar-benar mentok
                             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
                                 loading = true;
                                 loader.textContent = 'Loading...';
 
-                                fetch(`?page=${page}${list}${mode}${start}${end}`, {
+                                fetch(`?page=${page}${list}${mode}${start}${end}${sort}${direction}`, {
                                         headers: {
                                             'X-Requested-With': 'XMLHttpRequest'
                                         }
